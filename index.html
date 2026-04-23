@@ -1,0 +1,293 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Contas a Pagar — SE2 Posição Diária</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f5f6fa;color:#1e2340}
+.header{background:linear-gradient(135deg,#1e2340,#2d3a6e);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:16px}
+.logo{width:46px;height:46px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.htitle{flex:1}
+.htitle h1{font-size:19px;font-weight:700}
+.htitle .sub{font-size:12px;color:#a0aec0;margin-top:2px}
+.hdate{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 14px;text-align:right}
+.hdate .l{font-size:10px;color:#a0aec0;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.hdate .v{font-size:14px;font-weight:700;margin-top:2px}
+.tabs{display:flex;gap:2px;padding:0 28px;background:#fff;border-bottom:2px solid #dde1ee}
+.tab{padding:12px 20px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:#64748b;white-space:nowrap}
+.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
+.tab .bdg{background:#eef2f9;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px}
+.tab.active .bdg{background:#dbeafe;color:#2563eb}
+.panel{display:none;padding:18px 28px}
+.panel.active{display:block}
+.fbox{background:#fff;border-left:3px solid #2563eb;border-radius:8px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.frow{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.fld input,.fld select{padding:7px 10px;border:1px solid #dde1ee;border-radius:6px;font-size:13px;background:#fff}
+.btn{padding:8px 16px;border:none;border-radius:6px;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;font-size:13px}
+.btn:hover{background:#1d4ed8}
+.btn.sec{background:#64748b}
+.pill-row{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.pill-grp{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill-grp .lbl{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-right:4px}
+/* AJUSTE: garante visibilidade dos filtros de empresa nas duas abas */
+.pill-grp.pill-company{flex:1 1 420px}
+#emps,#pag-emps,#mon-emps{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 360px;min-width:300px}
+/* AJUSTE: desloca status levemente para a direita */
+.pill-grp.pill-status{margin-left:10px}
+.pill{padding:5px 14px;border:1px solid #dde1ee;border-radius:14px;font-size:12px;cursor:pointer;background:#fff;color:#475569;transition:.15s;font-weight:500}
+.pill:hover{border-color:#2563eb;color:#2563eb}
+.pill.on{background:#2563eb;color:#fff;border-color:#2563eb}
+.alert{background:#fff;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.alert.warn{border-left-color:#d97706}
+.alert.info{border-left-color:#2563eb}
+.alert .at{font-weight:600;font-size:13.5px;color:#1e2340;margin-bottom:4px}
+.alert .ad{font-size:12px;color:#64748b;line-height:1.5}
+.alert .av{font-size:12px;color:#2563eb;font-weight:600;cursor:pointer;white-space:nowrap}
+.alert .av:hover{text-decoration:underline}
+.sec-title{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px}
+.sec-title h2{font-size:15px;color:#1e2340}
+.sec-title .cnt{font-size:12px;color:#64748b}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:12px}
+th{background:#f0f2f8;padding:10px 8px;text-align:left;font-weight:700;color:#475569;border-bottom:2px solid #dde1ee;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid #eef0f5}
+tr:hover td{background:#f8fafc}
+.status{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;white-space:nowrap}
+.st-venc{background:#fef2f2;color:#b91c1c}
+.st-baix{background:#f0fdf4;color:#16a34a}
+.st-aven{background:#fffbeb;color:#b45309}
+.st-parc{background:#dbeafe;color:#1d4ed8;border:1px solid #60a5fa}
+.atraso{text-align:center;font-variant-numeric:tabular-nums}
+.atr-0{color:#94a3b8}
+.atr-med{background:#f59e0b;color:#fff;border-radius:4px;padding:4px 10px;font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.15);font-size:12px}
+.atr-hi{background:#dc2626;color:#fff;border-radius:4px;padding:4px 10px;font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.15);font-size:12px}
+.atr-crit{background:#7f1d1d;color:#fff;border-radius:4px;padding:4px 10px;font-weight:900;box-shadow:0 2px 4px rgba(185,28,28,.4);font-size:12.5px;border:1px solid #450a0a}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.filemp{font-weight:600;color:#1e2340;font-size:11.5px}
+.filemp .f{color:#64748b;font-weight:500}
+.an-card{background:#fff;border-radius:8px;padding:18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:4px solid}
+.an-card.crit{border-top-color:#dc2626;background:linear-gradient(180deg,#fef2f2 0%,#fff 40%)}
+.an-card.warn{border-top-color:#d97706;background:linear-gradient(180deg,#fffbeb 0%,#fff 40%)}
+.an-card.info{border-top-color:#2563eb;background:linear-gradient(180deg,#eff6ff 0%,#fff 40%)}
+.an-card h3{font-size:15px;margin-bottom:4px}
+.an-card .meta{font-size:12px;color:#64748b;margin-bottom:10px}
+.an-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.an-stat{background:rgba(255,255,255,.7);border:1px solid #e5e7eb;border-radius:6px;padding:8px 14px;min-width:130px}
+.an-stat .l{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
+.an-stat .v{font-size:15px;font-weight:800;margin-top:2px;color:#1e2340}
+.an-card.crit .an-stat .v{color:#b91c1c}
+.an-card.warn .an-stat .v{color:#b45309}
+
+.ab-pg,.ab-mn{padding:4px 8px;border:none;border-radius:4px;cursor:pointer;font-size:13px;transition:.15s}
+.ab-pg{background:#dcfce7;color:#15803d}.ab-pg:hover{background:#16a34a;color:#fff}
+.ab-mn{background:#fef3c7;color:#b45309}.ab-mn:hover{background:#d97706;color:#fff}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:10px;padding:24px;max-width:520px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal h3{font-size:17px;margin-bottom:6px}
+.modal .desc{font-size:12px;color:#64748b;margin-bottom:14px}
+.modal textarea{width:100%;min-height:80px;padding:10px;border:1px solid #dde1ee;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.pag-day{background:#fff;border-radius:8px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid #16a34a}
+.pag-day h4{font-size:14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.pag-day .dm{font-size:12px;color:#64748b;margin-bottom:10px}
+.pag-day table{font-size:11.5px}
+.pag-stat{background:#fff;padding:12px 16px;border-radius:8px;border-left:3px solid #16a34a;min-width:150px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.pag-stat .l{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
+.pag-stat .v{font-size:17px;font-weight:800;color:#16a34a;margin-top:3px}
+.obs-cell{background:#fffbeb;border-left:2px solid #f59e0b;padding:6px 8px;font-size:11px;color:#78350f;font-style:italic;max-width:220px}
+.obs-box{display:flex;align-items:flex-start;gap:6px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:7px 10px;font-size:11.5px;color:#78350f;min-width:180px;max-width:240px;min-height:38px;cursor:default;box-shadow:inset 0 1px 3px rgba(245,158,11,.08)}
+.obs-box .obs-txt{flex:1;line-height:1.5;font-style:normal;word-break:break-word}
+.obs-box .obs-txt.vazio{color:#a16207;font-style:italic;opacity:.6}
+.obs-edit-btn{flex-shrink:0;border:1px solid #fcd34d;background:#fff8e1;border-radius:5px;cursor:pointer;font-size:12px;padding:2px 5px;color:#b45309;transition:.15s;line-height:1}
+.obs-edit-btn:hover{background:#fef3c7;border-color:#f59e0b}
+th{background:#f0f2f8;padding:10px 8px;text-align:center;font-weight:700;color:#475569;border-bottom:2px solid #dde1ee;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+th.num{text-align:right}
+#p-all tbody tr:nth-child(odd) td{background:#ffffff}
+#p-all tbody tr:nth-child(even) td{background:#f7f9fd}
+#p-all tbody tr:hover td{background:#eef3ff!important}
+.diff-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.diff-ok{background:#f0fdf4;color:#15803d;border:1px solid #86efac}
+.diff-warn{background:#fffbeb;color:#b45309;border:1px solid #fcd34d}
+.diff-alert{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5}
+.diff-neutral{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+.comp-cell{padding:6px 8px;vertical-align:top;min-width:200px}
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pager .pg-info{font-size:12px;color:#64748b}
+.pager .pg-btn{border:1px solid #dbe1ef;background:#fff;color:#334155;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+.pager .pg-btn:disabled{opacity:.5;cursor:not-allowed}
+.uuid-copy-btn{border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#334155;white-space:nowrap}
+.uuid-copy-btn:hover{border-color:#2563eb;color:#1d4ed8;background:#f8fafc}
+@media (max-width: 980px){
+  .header{padding:12px 16px;flex-wrap:wrap;align-items:flex-start}
+  .header > div:last-child{width:100%;align-items:stretch}
+  .hdate{width:100%;text-align:left}
+  .tabs{padding:0 16px;overflow-x:auto}
+  .panel{padding:14px 16px}
+  .fbox{padding:12px 12px}
+  .frow{gap:10px}
+  .fld input,.fld select{min-width:0;max-width:100%}
+  .sec-title{gap:10px;align-items:flex-start;flex-direction:column}
+  .sec-title > div{display:flex;flex-wrap:wrap;gap:8px}
+  table{min-width:1180px}
+}
+</style></head><body>
+<div class="header">
+  <div class="logo">S&amp;D</div>
+  <div class="htitle"><h1>Contas a Pagar — SE2 Posição Diária</h1><div class="sub">S&amp;D Florestal Group · TOTVS Protheus · Amostra 14309 títulos</div></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+    <button onclick="exportarEstado()" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.13)'" title="Salva o estado atual e prepara para a próxima atualização da base">🔄 Atualizar Base</button>
+    <div class="hdate"><div class="l">⏱ Última Atualização</div><div class="v" id="hdt">23/04/2026 · 11:26</div></div>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" data-tab="all" onclick="tab('all')">Todos os Títulos <span class="bdg" id="b-all">0</span></div>
+  <div class="tab" data-tab="pag" onclick="tab('pag')">Enviados para Pagamento <span class="bdg" id="b-pag">0</span></div>
+  <div class="tab" data-tab="mon" onclick="tab('mon')">Monitoramento <span class="bdg" id="b-mon">0</span></div>
+  <div class="tab" data-tab="new" onclick="tab('new')">🆕 Novos Títulos <span class="bdg" id="b-new">0</span></div>
+</div>
+
+<div class="panel active" id="p-all">
+  <div id="alerts-top" style="margin-bottom:12px"></div>
+  <div class="fbox"><div class="frow">
+    <div class="fld"><label>Nº NF / TÍTULO</label><input id="f-num" placeholder="ex: 000001234" oninput="render(true)"></div>
+    <div class="fld"><label>RAZÃO SOCIAL</label><input id="f-razao" placeholder="ex: TOTVS S.A." oninput="render(true)" style="min-width:200px"></div>
+    <div class="fld"><label>FORNECEDOR</label><input id="f-forn" placeholder="ex: Signallink" oninput="render(true)" style="min-width:180px"></div>
+    <div class="fld"><label>VALOR MÍN</label><input id="f-vmin" type="number" placeholder="0" oninput="render(true)" style="width:100px"></div>
+    <div class="fld"><label>VALOR MÁX</label><input id="f-vmax" type="number" placeholder="∞" oninput="render(true)" style="width:100px"></div>
+    <div class="fld"><label>VENCIMENTO DE</label><input id="f-d1" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>VENCIMENTO ATÉ</label><input id="f-d2" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>EMISSÃO DE</label><input id="f-em1" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>EMISSÃO ATÉ</label><input id="f-em2" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>VENC. REAL DE</label><input id="f-vr1" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>VENC. REAL ATÉ</label><input id="f-vr2" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>TIPO</label><input id="f-tipo" placeholder="NF, BOL, PA..." oninput="render(true)" style="width:130px"></div>
+    <div class="fld"><label>HISTÓRICO</label><input id="f-hist" placeholder="ex: pagamento" oninput="render(true)" style="min-width:180px"></div>
+    <div class="fld"><label>EMPRESA - FILIAL</label><select id="f-filial" onchange="render(true)" style="min-width:220px"><option value="">Todas</option></select></div>
+    <div class="fld"><label>CAMPO UUID</label><input id="f-uuid" placeholder="Buscar UUID (parcial)" oninput="render(true)" style="min-width:200px"></div>
+    <div class="fld"><label>NOME USUÁRIO INC</label><input id="f-inc-name" placeholder="Filtrar nome…" oninput="render(true)" style="min-width:140px"></div>
+    <div class="fld"><label>DATA INC DE</label><input id="f-inc1" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>DATA INC ATÉ</label><input id="f-inc2" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>NOME USUÁRIO ALT</label><input id="f-alt-name" placeholder="Filtrar nome…" oninput="render(true)" style="min-width:140px"></div>
+    <div class="fld"><label>DATA ALT DE</label><input id="f-alt1" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>DATA ALT ATÉ</label><input id="f-alt2" type="date" oninput="render(true)"></div>
+    <button class="btn" onclick="clearF()">Limpar filtros</button>
+  </div></div>
+<div class="fbox"><div class="pill-row">
+    <div class="pill-grp pill-company"><span class="lbl">Empresa</span><div id="emps"></div></div>
+    <div class="pill-grp pill-status"><span class="lbl">Status</span>
+      <span class="pill" data-st="Vencido" onclick="togSt(this)">Vencido</span>
+      <span class="pill" data-st="A Vencer" onclick="togSt(this)">A Vencer</span>
+      <span class="pill" data-st="Baixado" onclick="togSt(this)">Baixado</span>
+      <span class="pill" data-st="Baixa Parcial" onclick="togSt(this)">Baixa Parcial</span>
+    </div>
+  </div></div>
+  <div class="sec-title"><h2>Títulos</h2><div><button class="btn" onclick="sendPagBulk()" style="background:#16a34a">💰 Enviar selecionados p/ pagamento</button> <button class="btn sec" onclick="openMonitorBulk()">📌 Monitorar selecionados</button> <button class="btn" onclick="download()">⬇ CSV</button> <span class="cnt" id="cnt"></span></div></div>
+  <div class="drag-scroll" style="overflow-x:auto;cursor:grab;user-select:none"><table><thead><tr>
+    <th style="width:26px"><input type="checkbox" onchange="togAll(this)"></th>
+    <th>EMPRESA - FILIAL</th><th>TIPO</th><th>Nº TÍTULO</th><th>PARC.</th>
+    <th>RAZÃO SOCIAL</th><th>FORNECEDOR</th>
+    <th>EMISSÃO</th><th>VENCIMENTO</th><th>VENC. REAL</th>
+    <th class="num">VALOR TÍTULO</th><th class="num">SALDO</th>
+    <th>STATUS</th><th style="background:#fef2f2;color:#991b1b">ATRASO (DIAS)</th>
+    <th>DT. BAIXA</th><th>HISTÓRICO</th>
+    <th class="num">VAL. LÍQ. BAIX.</th><th>Nº BORDERÔ</th><th>DT. BORDERÔ</th>
+    <th>DT. LIBERAÇÃO</th><th>TIPO PGTO</th><th>CNPJ/CPF</th>
+    <th>UUID</th><th>NOME INC</th><th>DATA INC</th><th>NOME ALT</th><th>DATA ALT</th><th style="width:90px">AÇÕES</th>
+  </tr></thead><tbody id="tb"></tbody></table></div>
+  <div id="pager" class="pager"></div>
+</div>
+
+
+<div class="panel" id="p-pag">
+  <div class="fbox" style="border-left-color:#16a34a"><div class="frow">
+    <div class="fld"><label>Nº NF / TÍTULO</label><input id="pag-num" placeholder="ex: 000001234" oninput="renderPAG()"></div>
+    <div class="fld"><label>FORNECEDOR</label><input id="pag-forn" placeholder="ex: Signallink" oninput="renderPAG()" style="min-width:160px"></div>
+    <div class="fld"><label>VALOR MÍN</label><input id="pag-vmin" type="number" placeholder="0" oninput="renderPAG()" style="width:100px"></div>
+    <div class="fld"><label>VALOR MÁX</label><input id="pag-vmax" type="number" placeholder="∞" oninput="renderPAG()" style="width:100px"></div>
+    <div class="fld"><label>DIA DO ENVIO</label><input id="pag-d1" type="date" oninput="renderPAG()"></div>
+    
+    <div class="fld"><label>TIPO</label><input id="pag-tipo" placeholder="NF, BOL..." oninput="renderPAG()" style="width:110px"></div>
+    <div class="fld"><label>UUID</label><input id="pag-uuid" placeholder="UUID (parcial)" oninput="renderPAG()" style="min-width:160px"></div>
+    <div class="fld"><label>NOME INC</label><input id="pag-inc-name" placeholder="Nome…" oninput="renderPAG()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA INC DE</label><input id="pag-inc1" type="date" oninput="renderPAG()"></div>
+    <div class="fld"><label>DATA INC ATÉ</label><input id="pag-inc2" type="date" oninput="renderPAG()"></div>
+    <div class="fld"><label>NOME ALT</label><input id="pag-alt-name" placeholder="Nome…" oninput="renderPAG()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA ALT DE</label><input id="pag-alt1" type="date" oninput="renderPAG()"></div>
+    <div class="fld"><label>DATA ALT ATÉ</label><input id="pag-alt2" type="date" oninput="renderPAG()"></div>
+    <button class="btn sec" onclick="clearPAG()">Limpar</button>
+    <button class="btn" onclick="downloadPAG()">⬇ CSV</button>
+  </div></div>
+  <div class="fbox"><div class="pill-row">
+    <div class="pill-grp pill-company"><span class="lbl">Empresa-Filial</span><div id="pag-emps"></div></div>
+  </div></div>
+  <div id="pag-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="pag-list"></div>
+</div>
+
+<div class="panel" id="p-mon">
+  <div class="fbox" style="border-left-color:#d97706"><div class="frow">
+    <div class="fld"><label>Nº NF / TÍTULO</label><input id="mon-num" placeholder="ex: 000001234" oninput="renderMON()"></div>
+    <div class="fld"><label>FORNECEDOR</label><input id="mon-forn" placeholder="ex: Signallink" oninput="renderMON()" style="min-width:160px"></div>
+    <div class="fld"><label>VALOR MÍN</label><input id="mon-vmin" type="number" placeholder="0" oninput="renderMON()" style="width:100px"></div>
+    <div class="fld"><label>VALOR MÁX</label><input id="mon-vmax" type="number" placeholder="∞" oninput="renderMON()" style="width:100px"></div>
+    <div class="fld"><label>VENCIMENTO DE</label><input id="mon-d1" type="date" oninput="renderMON()"></div>
+    <div class="fld"><label>ATÉ</label><input id="mon-d2" type="date" oninput="renderMON()"></div>
+    <div class="fld"><label>TIPO</label><input id="mon-tipo" placeholder="NF, BOL..." oninput="renderMON()" style="width:110px"></div>
+    <div class="fld"><label>UUID</label><input id="mon-uuid" placeholder="UUID (parcial)" oninput="renderMON()" style="min-width:160px"></div>
+    <div class="fld"><label>NOME INC</label><input id="mon-inc-name" placeholder="Nome…" oninput="renderMON()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA INC DE</label><input id="mon-inc1" type="date" oninput="renderMON()"></div>
+    <div class="fld"><label>DATA INC ATÉ</label><input id="mon-inc2" type="date" oninput="renderMON()"></div>
+    <div class="fld"><label>NOME ALT</label><input id="mon-alt-name" placeholder="Nome…" oninput="renderMON()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA ALT DE</label><input id="mon-alt1" type="date" oninput="renderMON()"></div>
+    <div class="fld"><label>DATA ALT ATÉ</label><input id="mon-alt2" type="date" oninput="renderMON()"></div>
+    <button class="btn sec" onclick="clearMON()">Limpar</button>
+    <button class="btn" onclick="downloadMON()">⬇ CSV</button>
+  </div></div>
+  <div class="fbox"><div class="pill-row">
+    <div class="pill-grp pill-company"><span class="lbl">Empresa-Filial</span><div id="mon-emps"></div></div>
+  </div></div>
+  <div id="mon-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="mon-list"></div>
+</div>
+
+<div class="panel" id="p-new">
+  <div class="fbox" style="border-left-color:#7c3aed">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1e2340">🆕 Novos Títulos</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px">Títulos identificados como novos em relação à sessão anterior. Atualizado a cada carregamento da página.</div>
+      </div>
+      <button class="btn" style="background:#7c3aed" onclick="resetNewSeen()">🔄 Resetar histórico de vistos</button>
+    </div>
+    <div id="new-ref-info" style="margin-top:8px;font-size:11px;color:#64748b;font-style:italic"></div>
+  </div>
+  <div class="fbox" style="border-left-color:#a78bfa"><div class="frow">
+    <div class="fld"><label>UUID</label><input id="new-uuid" placeholder="UUID (parcial)" oninput="renderNEW()" style="min-width:160px"></div>
+    <div class="fld"><label>NOME INC</label><input id="new-inc-name" placeholder="Nome…" oninput="renderNEW()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA INC DE</label><input id="new-inc1" type="date" oninput="renderNEW()"></div>
+    <div class="fld"><label>DATA INC ATÉ</label><input id="new-inc2" type="date" oninput="renderNEW()"></div>
+    <div class="fld"><label>NOME ALT</label><input id="new-alt-name" placeholder="Nome…" oninput="renderNEW()" style="min-width:120px"></div>
+    <div class="fld"><label>DATA ALT DE</label><input id="new-alt1" type="date" oninput="renderNEW()"></div>
+    <div class="fld"><label>DATA ALT ATÉ</label><input id="new-alt2" type="date" oninput="renderNEW()"></div>
+    <button class="btn sec" onclick="clearNEW()">Limpar filtros</button>
+  </div></div>
+  <div id="new-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="new-list"></div>
+</div>
+
+</div>
+
+<div class="modal-bg" id="mdl"><div class="modal">
+  <h3 id="mdl-title">Ação</h3>
+  <div class="desc" id="mdl-desc"></div>
+  <textarea id="mdl-obs" placeholder="Digite uma observação (opcional)..."></textarea>
+  <div class="row">
+    <button class="btn sec" onclick="closeMdl()">Cancelar</button>
+    <button class="btn" id="mdl-ok">Confirmar</button>
+  </div>
+</div></div>
+
+<script src="backup.js"></script>
+<script src="datos.js"></script>
+<script src="app.js"></script>
+
+</body></html>
