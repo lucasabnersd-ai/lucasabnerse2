@@ -116,6 +116,12 @@ th.num{text-align:right}
 .pager .pg-btn:disabled{opacity:.5;cursor:not-allowed}
 .uuid-copy-btn{border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#334155;white-space:nowrap}
 .uuid-copy-btn:hover{border-color:#2563eb;color:#1d4ed8;background:#f8fafc}
+.toast{position:fixed;bottom:28px;right:28px;z-index:9999;background:#1e2340;color:#fff;padding:13px 20px;border-radius:10px;font-size:13.5px;font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.22);opacity:0;transform:translateY(16px);transition:opacity .25s,transform .25s;pointer-events:none;max-width:360px;line-height:1.45}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.warn{background:#b45309}
+.toast.ok{background:#15803d}
+.pag-acr-input:focus,.pag-dec-input:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+#mdl-manual .fld input,#mdl-manual .fld select{width:100%}
 @media (max-width: 980px){
   .header{padding:12px 16px;flex-wrap:wrap;align-items:flex-start}
   .header > div:last-child{width:100%;align-items:stretch}
@@ -132,10 +138,10 @@ th.num{text-align:right}
 </style></head><body>
 <div class="header">
   <div class="logo">S&amp;D</div>
-  <div class="htitle"><h1>Contas a Pagar — SE2 Posição Diária</h1><div class="sub">S&amp;D Florestal Group · TOTVS Protheus · Amostra 14309 títulos</div></div>
+  <div class="htitle"><h1>Contas a Pagar — SE2 Posição Diária</h1><div class="sub">S&amp;D Florestal Group · TOTVS Protheus · Amostra 14490 títulos</div></div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
     <button onclick="exportarEstado()" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.13)'" title="Salva o estado atual e prepara para a próxima atualização da base">🔄 Atualizar Base</button>
-    <div class="hdate"><div class="l">⏱ Última Atualização</div><div class="v" id="hdt">23/04/2026 · 11:26</div></div>
+    <div class="hdate"><div class="l">⏱ Última Atualização</div><div class="v" id="hdt">27/04/2026 · 09:15</div></div>
   </div>
 </div>
 <div class="tabs">
@@ -153,15 +159,14 @@ th.num{text-align:right}
     <div class="fld"><label>FORNECEDOR</label><input id="f-forn" placeholder="ex: Signallink" oninput="render(true)" style="min-width:180px"></div>
     <div class="fld"><label>VALOR MÍN</label><input id="f-vmin" type="number" placeholder="0" oninput="render(true)" style="width:100px"></div>
     <div class="fld"><label>VALOR MÁX</label><input id="f-vmax" type="number" placeholder="∞" oninput="render(true)" style="width:100px"></div>
-    <div class="fld"><label>VENCIMENTO DE</label><input id="f-d1" type="date" oninput="render(true)"></div>
-    <div class="fld"><label>VENCIMENTO ATÉ</label><input id="f-d2" type="date" oninput="render(true)"></div>
+    <div class="fld"><label>VAL. LÍQ. DE</label><input id="f-vliq1" type="number" placeholder="0" oninput="render(true)" style="width:100px"></div>
+    <div class="fld"><label>VAL. LÍQ. ATÉ</label><input id="f-vliq2" type="number" placeholder="∞" oninput="render(true)" style="width:100px"></div>
     <div class="fld"><label>EMISSÃO DE</label><input id="f-em1" type="date" oninput="render(true)"></div>
     <div class="fld"><label>EMISSÃO ATÉ</label><input id="f-em2" type="date" oninput="render(true)"></div>
     <div class="fld"><label>VENC. REAL DE</label><input id="f-vr1" type="date" oninput="render(true)"></div>
     <div class="fld"><label>VENC. REAL ATÉ</label><input id="f-vr2" type="date" oninput="render(true)"></div>
     <div class="fld"><label>TIPO</label><input id="f-tipo" placeholder="NF, BOL, PA..." oninput="render(true)" style="width:130px"></div>
     <div class="fld"><label>HISTÓRICO</label><input id="f-hist" placeholder="ex: pagamento" oninput="render(true)" style="min-width:180px"></div>
-    <div class="fld"><label>EMPRESA - FILIAL</label><select id="f-filial" onchange="render(true)" style="min-width:220px"><option value="">Todas</option></select></div>
     <div class="fld"><label>CAMPO UUID</label><input id="f-uuid" placeholder="Buscar UUID (parcial)" oninput="render(true)" style="min-width:200px"></div>
     <div class="fld"><label>NOME USUÁRIO INC</label><input id="f-inc-name" placeholder="Filtrar nome…" oninput="render(true)" style="min-width:140px"></div>
     <div class="fld"><label>DATA INC DE</label><input id="f-inc1" type="date" oninput="render(true)"></div>
@@ -180,7 +185,7 @@ th.num{text-align:right}
       <span class="pill" data-st="Baixa Parcial" onclick="togSt(this)">Baixa Parcial</span>
     </div>
   </div></div>
-  <div class="sec-title"><h2>Títulos</h2><div><button class="btn" onclick="sendPagBulk()" style="background:#16a34a">💰 Enviar selecionados p/ pagamento</button> <button class="btn sec" onclick="openMonitorBulk()">📌 Monitorar selecionados</button> <button class="btn" onclick="download()">⬇ CSV</button> <span class="cnt" id="cnt"></span></div></div>
+  <div class="sec-title"><h2>Títulos</h2><div><div class="fld" style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-right:8px"><label style="margin:0;white-space:nowrap">DATA PGTO</label><input id="pag-date-send" type="date" style="padding:5px 8px;font-size:12px" title="Data do envio para pagamento (vazio = hoje)"></div><button class="btn" onclick="sendPagBulk()" style="background:#16a34a">💰 Enviar selecionados p/ pagamento</button> <button class="btn sec" onclick="openMonitorBulk()">📌 Monitorar selecionados</button> <button class="btn" onclick="download()">⬇ CSV</button> <span class="cnt" id="cnt"></span></div></div>
   <div class="drag-scroll" style="overflow-x:auto;cursor:grab;user-select:none"><table><thead><tr>
     <th style="width:26px"><input type="checkbox" onchange="togAll(this)"></th>
     <th>EMPRESA - FILIAL</th><th>TIPO</th><th>Nº TÍTULO</th><th>PARC.</th>
@@ -219,6 +224,14 @@ th.num{text-align:right}
   <div class="fbox"><div class="pill-row">
     <div class="pill-grp pill-company"><span class="lbl">Empresa-Filial</span><div id="pag-emps"></div></div>
   </div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;margin-top:4px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn" style="background:#15803d" onclick="marcarStatusBulk('Debitado')">✅ Marcar Debitado</button>
+      <button class="btn" style="background:#b91c1c" onclick="marcarStatusBulk('Rejeitado')">❌ Marcar Rejeitado</button>
+      <button class="btn sec" onclick="marcarStatusBulk('')" style="font-size:12px">🔄 Limpar Status</button>
+    </div>
+    <button class="btn" style="background:#7c3aed" onclick="openInsertManual()">➕ Inserir Título Pago Manualmente</button>
+  </div>
   <div id="pag-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
   <div id="pag-list"></div>
 </div>
@@ -286,6 +299,38 @@ th.num{text-align:right}
   </div>
 </div></div>
 
+<div class="modal-bg" id="mdl-manual"><div class="modal" style="max-width:600px">
+  <h3>➕ Inserir Título Pago Manualmente</h3>
+  <div class="desc">Preencha os dados do título. O valor total pago será calculado automaticamente.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+    <div class="fld" style="flex:3;min-width:280px"><label>FILIAL - EMPRESA</label><select id="man-filial-empresa" style="padding:7px 10px;border:1px solid #dde1ee;border-radius:6px;font-size:13px;width:100%"><option value="">Selecione...</option></select></div>
+    <div class="fld" style="flex:1;min-width:100px"><label>TIPO</label><input id="man-tipo" placeholder="NF, BOL, PA..."></div>
+    <div class="fld" style="flex:2;min-width:200px"><label>FORNECEDOR</label><input id="man-fornecedor" placeholder="Nome do fornecedor..."></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+    <div class="fld" style="flex:1;min-width:120px"><label>SALDO (R$)</label><input id="man-saldo" type="text" placeholder="0,00" oninput="calcManualVTP()"></div>
+    <div class="fld" style="flex:1;min-width:120px"><label>ACRÉSCIMO (R$)</label><input id="man-acrescimo" type="text" placeholder="0,00" oninput="calcManualVTP()"></div>
+    <div class="fld" style="flex:1;min-width:120px"><label>DECRÉSCIMO (R$)</label><input id="man-decrescimo" type="text" placeholder="0,00" oninput="calcManualVTP()"></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;align-items:flex-end">
+    <div class="fld" style="flex:1;min-width:150px"><label>VENCIMENTO</label><input id="man-vencimento" type="date"></div>
+    <div class="fld" style="flex:1;min-width:140px"><label>STATUS</label>
+      <select id="man-status" style="padding:7px 10px;border:1px solid #dde1ee;border-radius:6px;font-size:13px">
+        <option value="Debitado">✅ Debitado</option>
+        <option value="Rejeitado">❌ Rejeitado</option>
+      </select>
+    </div>
+  </div>
+  <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:12px;font-weight:700;color:#15803d;text-transform:uppercase">Valor Total Pago</span>
+    <span id="man-vtp" style="font-size:17px;font-weight:800;color:#15803d">R$ 0,00</span>
+  </div>
+  <div class="row">
+    <button class="btn sec" onclick="closeManualMdl()">Cancelar</button>
+    <button class="btn" style="background:#7c3aed" onclick="salvarManual()">Salvar Título</button>
+  </div>
+</div></div>
+<div id="toast" class="toast"></div>
 <script src="backup.js"></script>
 <script src="datos.js"></script>
 <script src="app.js"></script>
