@@ -7,6 +7,21 @@ const PAGAMENTOS_INIT = (BOOT.pagamentosInit && Object.keys(BOOT.pagamentosInit)
 const MONITORED_INIT = (BOOT.monitoredInit && Object.keys(BOOT.monitoredInit).length) ? BOOT.monitoredInit : {};
 // Conjunto de UUIDs da última base (usado em "Novos Títulos" p/ diff com a carga anterior).
 const UUIDS_BASE_ANTERIOR = new Set((BACKUP.uuids_vistos || []).map(u => String(u).toUpperCase()));
+function normalizeStateUUID(value){
+  return String(value ?? '').trim().split('|', 1)[0].trim().toUpperCase();
+}
+function findRowByStateUUID(value){
+  const target = normalizeStateUUID(value);
+  if(!target) return null;
+  return DATA.find(r => String(r.uuid || '').trim().toUpperCase() === target);
+}
+function findRowByStateEntry(key, value){
+  const byUuid = findRowByStateUUID(key);
+  if(byUuid) return byUuid;
+  const origId = Number(value && typeof value === 'object' ? value._origId : NaN);
+  if(Number.isFinite(origId)) return DATA.find(r => r.id === origId) || null;
+  return null;
+}
 function applyBootMeta(){
   const el = document.getElementById("hdt");
   if(!el || !BOOT.updatedAt) return;
@@ -245,70 +260,16 @@ function updatePagStats(){
 
 
 // ===== PERSISTÊNCIA DE ESTADO (localStorage + UUID) =====
-
-// Cache de lookup para busca rápida por UUID (chave normalizada → row)
-let _uuidIndex = null;
-function _getUuidIndex(){
-  if(_uuidIndex) return _uuidIndex;
-  _uuidIndex = new Map();
-  DATA.forEach(r => {
-    if(!r.uuid) return;
-    // Indexa tanto o UUID completo quanto sem sufixo "|date"
-    const full = String(r.uuid).toUpperCase().trim();
-    _uuidIndex.set(full, r);
-    const pipe = full.indexOf('|');
-    if(pipe > 0) _uuidIndex.set(full.slice(0, pipe), r);
-  });
-  return _uuidIndex;
-}
-
-// Cache de lookup por ID
-let _idIndex = null;
-function _getIdIndex(){
-  if(_idIndex) return _idIndex;
-  _idIndex = new Map();
-  DATA.forEach(r => _idIndex.set(r.id, r));
-  return _idIndex;
-}
-
-/**
- * Busca robusta: dado um UUID (pode conter |data) e opcionalmente um _origId,
- * tenta encontrar o registro correspondente em DATA.
- * Estratégias (em ordem de prioridade):
- *   1) Match exato por UUID
- *   2) Match por UUID sem o sufixo "|data"
- *   3) Match por _origId (fallback quando os UUIDs mudaram, ex: AUTO-XXXXXX)
- */
-function _findRowByBackupEntry(uuid, val){
-  const idx = _getUuidIndex();
-  const idIdx = _getIdIndex();
-  const norm = String(uuid||'').toUpperCase().trim();
-  // 1) Match exato
-  if(idx.has(norm)) return idx.get(norm);
-  // 2) Strip |date suffix do backup e tentar
-  const pipe = norm.indexOf('|');
-  if(pipe > 0){
-    const base = norm.slice(0, pipe);
-    if(idx.has(base)) return idx.get(base);
-  }
-  // 3) Fallback: _origId (ID do registro na base anterior)
-  if(val && val._origId !== undefined && val._origId !== null){
-    const r = idIdx.get(+val._origId);
-    if(r) return r;
-  }
-  return null;
-}
-
 function _buildUUIDState(){
   // Converte estado atual (por ID) para estado por UUID (para exportação segura)
   const pagUUID = {}, monUUID = {};
   Object.entries(pagamentos).forEach(([id, val]) => {
     const r = DATA.find(x => x.id === +id);
-    if(r && r.uuid) pagUUID[r.uuid] = {...val, _origId: r.id};
+    if(r && r.uuid) pagUUID[r.uuid] = val;
   });
   Object.entries(monitored).forEach(([id, val]) => {
     const r = DATA.find(x => x.id === +id);
-    if(r && r.uuid) monUUID[r.uuid] = {...val, _origId: r.id};
+    if(r && r.uuid) monUUID[r.uuid] = val;
   });
   return {pagUUID, monUUID};
 }
@@ -333,18 +294,17 @@ function restaurarEstado(){
     if(MONITORED_INIT && Object.keys(MONITORED_INIT).length){
       Object.keys(MONITORED_INIT).forEach(k=>{ monitored[+k]=MONITORED_INIT[k]; });
     }
-    // 2) Backup por UUID (backup.js): aplica apenas IDs que ainda não estão preenchidos.
-    //    Usa matching robusto: UUID exato → UUID sem |data → _origId fallback.
+    // 2) Backup por UUID (backup.js): aceita UUID puro ou chave composta UUID|data.
     //    Isto garante que o backup nunca sobrescreve dados já confirmados pelo Python.
     if(BACKUP.pagamentos_uuid){
       Object.entries(BACKUP.pagamentos_uuid).forEach(([uuid, val]) => {
-        const r = _findRowByBackupEntry(uuid, val);
+        const r = findRowByStateEntry(uuid, val);
         if(r && pagamentos[r.id] === undefined) pagamentos[r.id] = val;
       });
     }
     if(BACKUP.monitored_uuid){
       Object.entries(BACKUP.monitored_uuid).forEach(([uuid, val]) => {
-        const r = _findRowByBackupEntry(uuid, val);
+        const r = findRowByStateEntry(uuid, val);
         if(r && monitored[r.id] === undefined) monitored[r.id] = val;
       });
     }
@@ -355,31 +315,26 @@ function restaurarEstado(){
       if(puuid){
         const obj = JSON.parse(puuid);
         Object.entries(obj).forEach(([uuid, val]) => {
-          const r = _findRowByBackupEntry(uuid, val);
+          const r = findRowByStateEntry(uuid, val);
           if(r && pagamentos[r.id] === undefined) pagamentos[r.id] = val;
         });
       }
       if(muuid){
         const obj = JSON.parse(muuid);
         Object.entries(obj).forEach(([uuid, val]) => {
-          const r = _findRowByBackupEntry(uuid, val);
+          const r = findRowByStateEntry(uuid, val);
           if(r && monitored[r.id] === undefined) monitored[r.id] = val;
         });
       }
     }catch(_){ /* localStorage pode estar bloqueado; ignore */ }
-    // 4) Restaurar títulos manuais — prioridade: BACKUP direto, fallback: localStorage
+    // 4) Restaurar títulos manuais
     try{
-      // 4a) Direto do backup.js (mais confiável, não depende de localStorage)
-      if(BACKUP.titulosManuais && Array.isArray(BACKUP.titulosManuais)){
-        BACKUP.titulosManuais.forEach(m=>{ if(!titulosManuais.find(x=>x.id===m.id)) titulosManuais.push(m); });
-      }
-      // 4b) Fallback: localStorage
       const tm = localStorage.getItem('se2_titulos_manuais');
       if(tm){
         const arr = JSON.parse(tm);
         arr.forEach(m=>{ if(!titulosManuais.find(x=>x.id===m.id)) titulosManuais.push(m); });
+        if(titulosManuais.length) _manualIdCounter = Math.min(_manualIdCounter, ...titulosManuais.map(m=>m.id)) - 1;
       }
-      if(titulosManuais.length) _manualIdCounter = Math.min(_manualIdCounter, ...titulosManuais.map(m=>m.id)) - 1;
     }catch(_){}
     document.getElementById('b-pag').textContent=Object.keys(pagamentos).length + titulosManuais.length;
     document.getElementById('b-mon').textContent=Object.keys(monitored).length;
