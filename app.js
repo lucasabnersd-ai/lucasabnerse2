@@ -1,12 +1,12 @@
-const BOOT = window.__SE2__ || { data: [], updatedAt: "", monitoredInit: {}, pagamentosInit: {} };
-const BACKUP = window.__SE2_BACKUP__ || { pagamentos_uuid: {}, monitored_uuid: {}, uuids_vistos: [], exportadoEm: "" };
-const DATA = BOOT.data || [];
+let BOOT = window.__SE2__ || { data: [], updatedAt: "", monitoredInit: {}, pagamentosInit: {} };
+let BACKUP = window.__SE2_BACKUP__ || { pagamentos_uuid: {}, monitored_uuid: {}, uuids_vistos: [], exportadoEm: "" };
+let DATA = BOOT.data || [];
 // PAGAMENTOS_INIT / MONITORED_INIT: prioridade ao que vem do Python (datos.js).
 // Fallback: usa o que foi salvo no backup.js (gerado do JSON de backup).
-const PAGAMENTOS_INIT = (BOOT.pagamentosInit && Object.keys(BOOT.pagamentosInit).length) ? BOOT.pagamentosInit : {};
-const MONITORED_INIT = (BOOT.monitoredInit && Object.keys(BOOT.monitoredInit).length) ? BOOT.monitoredInit : {};
+let PAGAMENTOS_INIT = (BOOT.pagamentosInit && Object.keys(BOOT.pagamentosInit).length) ? BOOT.pagamentosInit : {};
+let MONITORED_INIT = (BOOT.monitoredInit && Object.keys(BOOT.monitoredInit).length) ? BOOT.monitoredInit : {};
 // Conjunto de UUIDs da última base (usado em "Novos Títulos" p/ diff com a carga anterior).
-const UUIDS_BASE_ANTERIOR = new Set((BACKUP.uuids_vistos || []).map(u => String(u).toUpperCase()));
+let UUIDS_BASE_ANTERIOR = new Set((BACKUP.uuids_vistos || []).map(u => String(u).toUpperCase()));
 function normalizeStateUUID(value){
   return String(value ?? '').trim().split('|', 1)[0].trim().toUpperCase();
 }
@@ -111,16 +111,50 @@ function buildCompanyPairsFromSE2(){
     return a.filial.localeCompare(b.filial, 'pt-BR');
   });
 }
-const COMPANY_PAIRS_ALL = buildCompanyPairsFromSE2();
+let COMPANY_PAIRS_ALL = buildCompanyPairsFromSE2();
+function renderCompanyPills(){
+  const el = document.getElementById('emps');
+  if(!el) return;
+  el.innerHTML = COMPANY_PAIRS_ALL.map(c=>`<span class="pill" data-emp="${c.key}" onclick="togEmp(this)">${c.label}</span>`).join('');
+}
+function applyPublishedState(){
+  BOOT = window.__SE2__ || { data: [], updatedAt: "", monitoredInit: {}, pagamentosInit: {} };
+  BACKUP = window.__SE2_BACKUP__ || { pagamentos_uuid: {}, monitored_uuid: {}, uuids_vistos: [], exportadoEm: "" };
+  DATA = BOOT.data || [];
+  PAGAMENTOS_INIT = (BOOT.pagamentosInit && Object.keys(BOOT.pagamentosInit).length) ? BOOT.pagamentosInit : {};
+  MONITORED_INIT = (BOOT.monitoredInit && Object.keys(BOOT.monitoredInit).length) ? BOOT.monitoredInit : {};
+  UUIDS_BASE_ANTERIOR = new Set((BACKUP.uuids_vistos || []).map(u => String(u).toUpperCase()));
+  COMPANY_PAIRS_ALL = buildCompanyPairsFromSE2();
+}
+function loadFreshScript(src){
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const url = new URL(src, document.baseURI);
+    url.searchParams.set('_se2', `${Date.now()}${Math.random().toString(36).slice(2)}`);
+    script.src = url.toString();
+    script.async = false;
+    script.onload = () => { script.remove(); resolve(); };
+    script.onerror = () => { script.remove(); reject(new Error(`Falha ao carregar ${src}`)); };
+    document.head.appendChild(script);
+  });
+}
+async function refreshPublishedAssets(){
+  // Recarrega os arquivos publicados com cache-bust para evitar usar dados antigos.
+  try{
+    await Promise.all([
+      loadFreshScript('backup.js'),
+      loadFreshScript('datos.js')
+    ]);
+  }catch(_err){}
+  applyPublishedState();
+}
 function populateFilialFilter(){
   const selFilial = document.getElementById('f-filial');
-  if(!selFilial) return;
-  selFilial.innerHTML = `<option value="">Todas</option>` + COMPANY_PAIRS_ALL.map(c=>`<option value="${c.key}">${c.label}</option>`).join('');
+  if(selFilial){
+    selFilial.innerHTML = `<option value="">Todas</option>` + COMPANY_PAIRS_ALL.map(c=>`<option value="${c.key}">${c.label}</option>`).join('');
+  }
+  renderCompanyPills();
 }
-
-(function(){
-  document.getElementById('emps').innerHTML=COMPANY_PAIRS_ALL.map(c=>`<span class="pill" data-emp="${c.key}" onclick="togEmp(this)">${c.label}</span>`).join('');
-})();
 function togEmp(el){ const v=el.dataset.emp; if(sel.emp.has(v)){sel.emp.delete(v);el.classList.remove('on')} else{sel.emp.add(v);el.classList.add('on')} render(true); }
 function togSt(el){ const v=el.dataset.st; if(sel.st.has(v)){sel.st.delete(v);el.classList.remove('on')} else{sel.st.add(v);el.classList.add('on')} render(true); }
 function clearF(){ filterAberracao=false; ['f-num','f-razao','f-forn','f-vmin','f-vmax','f-vliq1','f-vliq2','f-em1','f-em2','f-vr1','f-vr2','f-tipo','f-hist','f-uuid','f-inc-name','f-inc1','f-inc2','f-alt-name','f-alt1','f-alt2'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';}); sel.emp.clear(); sel.st.clear(); document.querySelectorAll('#p-all .pill.on').forEach(p=>p.classList.remove('on')); render(true); }
@@ -820,7 +854,8 @@ function sortData(rows){
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', function(){
+async function bootstrapApp(){
+  await refreshPublishedAssets();
   applyBootMeta();
   restaurarEstado();
   populateFilialFilter();
@@ -829,7 +864,13 @@ document.addEventListener('DOMContentLoaded', function(){
   render();
   setupSort();
   renderNEW();
-});
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => { void bootstrapApp(); }, { once: true });
+} else {
+  void bootstrapApp();
+}
 
 function render(resetPage=false){
   if(resetPage) currentPage = 1;
