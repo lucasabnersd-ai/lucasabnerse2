@@ -90,6 +90,11 @@ tr:hover td{background:#f8fafc}
 .pag-day h4{font-size:14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
 .pag-day .dm{font-size:12px;color:#64748b;margin-bottom:10px}
 .pag-day table{font-size:11.5px}
+.pag-day table th{padding:7px 4px;font-size:10px;letter-spacing:.3px}
+.pag-day table td{padding:6px 4px}
+.pag-day table th.num,.pag-day table td.num{padding-left:3px;padding-right:3px}
+.pag-day .obs-box{min-width:150px;max-width:200px;padding:5px 7px;font-size:11px;min-height:32px}
+.pag-day .pag-acr-input,.pag-day .pag-dec-input{width:78px !important;padding:3px 5px !important;font-size:11.5px !important}
 .pag-stat{background:#fff;padding:12px 16px;border-radius:8px;border-left:3px solid #16a34a;min-width:150px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .pag-stat .l{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
 .pag-stat .v{font-size:17px;font-weight:800;color:#16a34a;margin-top:3px}
@@ -122,6 +127,12 @@ th.num{text-align:right}
 .toast.ok{background:#15803d}
 .pag-acr-input:focus,.pag-dec-input:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
 #mdl-manual .fld input,#mdl-manual .fld select{width:100%}
+.pag-date-wrap{display:inline-flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:5px 10px 5px 12px;height:36px;box-sizing:border-box}
+.pag-date-wrap .pag-date-lbl{font-size:11px;font-weight:700;color:#15803d;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.pag-date-wrap input{border:1px solid #86efac;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff;color:#15803d;font-weight:600}
+.pag-date-wrap input:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 2px rgba(22,163,74,.18)}
+.tb-row-selected td{background:#fef9c3 !important;transition:background .15s}
+.tb-row-selected td:first-child{box-shadow:inset 3px 0 0 #f59e0b}
 @media (max-width: 980px){
   .header{padding:12px 16px;flex-wrap:wrap;align-items:flex-start}
   .header > div:last-child{width:100%;align-items:stretch}
@@ -138,10 +149,10 @@ th.num{text-align:right}
 </style></head><body>
 <div class="header">
   <div class="logo">S&amp;D</div>
-  <div class="htitle"><h1>Contas a Pagar — SE2 Posição Diária</h1><div class="sub">S&amp;D Florestal Group · TOTVS Protheus · Amostra 15994 títulos</div></div>
+  <div class="htitle"><h1>Contas a Pagar — SE2 Posição Diária</h1><div class="sub">S&amp;D Florestal Group · TOTVS Protheus · Amostra 16525 títulos</div></div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
     <button onclick="exportarEstado()" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.13)'" title="Salva o estado atual e prepara para a próxima atualização da base">🔄 Atualizar Base</button>
-    <div class="hdate"><div class="l">⏱ Última Atualização</div><div class="v" id="hdt">30/04/2026 · 08:41</div></div>
+    <div class="hdate"><div class="l">⏱ Última Atualização</div><div class="v" id="hdt">05/05/2026 · 11:32</div></div>
   </div>
 </div>
 <div class="tabs">
@@ -185,7 +196,13 @@ th.num{text-align:right}
       <span class="pill" data-st="Baixa Parcial" onclick="togSt(this)">Baixa Parcial</span>
     </div>
   </div></div>
-  <div class="sec-title"><h2>Títulos</h2><div><div class="fld" style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-right:8px"><label style="margin:0;white-space:nowrap">DATA PGTO</label><input id="pag-date-send" type="date" style="padding:5px 8px;font-size:12px" title="Data do envio para pagamento (vazio = hoje)"></div><button class="btn" onclick="sendPagBulk()" style="background:#16a34a">💰 Enviar selecionados p/ pagamento</button> <button class="btn sec" onclick="openMonitorBulk()">📌 Monitorar selecionados</button> <button class="btn" onclick="download()">⬇ CSV</button> <span class="cnt" id="cnt"></span></div></div>
+  <div class="sec-title"><h2>Títulos</h2><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="pag-date-wrap" title="Data do envio para pagamento (vazio = hoje)"><span class="pag-date-lbl">📅 DATA PGTO</span><input id="pag-date-send" type="date"></div>
+    <button class="btn" onclick="sendPagBulk()" style="background:#16a34a">💰 Enviar selecionados p/ pagamento</button>
+    <button class="btn sec" onclick="openMonitorBulk()">📌 Monitorar selecionados</button>
+    <button class="btn" onclick="download()">⬇ CSV</button>
+    <span class="cnt" id="cnt"></span>
+  </div></div>
   <div class="drag-scroll" style="overflow-x:auto;cursor:grab;user-select:none"><table><thead><tr>
     <th style="width:26px"><input type="checkbox" onchange="togAll(this)"></th>
     <th>EMPRESA - FILIAL</th><th>TIPO</th><th>Nº TÍTULO</th><th>PARC.</th>
@@ -331,8 +348,8 @@ th.num{text-align:right}
   </div>
 </div></div>
 <div id="toast" class="toast"></div>
-<script src="backup.js?v=20260430084131547196"></script>
-<script src="datos.js?v=20260430084131547196"></script>
-<script src="app.js?v=20260430084131547196"></script>
+<script src="backup.js?v=20260505113202011514"></script>
+<script src="datos.js?v=20260505113202011514"></script>
+<script src="app.js?v=20260505113202011514"></script>
 
 </body></html>
